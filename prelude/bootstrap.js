@@ -74,7 +74,21 @@ if (NODE_VERSION_MAJOR < 12 || require('worker_threads').isMainThread) {
   }
 }
 
-if (process.env.PKG_EXECPATH === EXECPATH) {
+if (process.send) {
+  // if process.send is set, it means the process was forked,
+  // and the runtime file is the third argument
+
+  for (let i = 2; i < process.argv.length; i += 1) {
+    if (process.argv[i].indexOf('--') === 0) {
+      // arguments to node. move PKG_DUMMY_ENTRYPOINT up
+      const tmp = process.argv[i - 1];
+      process.argv[i - 1] = process.argv[i];
+      process.argv[i] = tmp;
+    } else {
+      break;
+    }
+  }
+} else if (process.env.PKG_EXECPATH === EXECPATH) {
   process.argv.splice(1, 1);
 
   if (process.argv[1] && process.argv[1] !== '-') {
@@ -1722,11 +1736,13 @@ function payloadFileSync(pointer) {
     fs.promises.stat = util.promisify(fs.stat);
     fs.promises.lstat = util.promisify(fs.lstat);
 
+    /*
     fs.promises.read = util.promisify(fs.read);
     fs.promises.realpath = util.promisify(fs.realpath);
     fs.promises.fstat = util.promisify(fs.fstat);
     fs.promises.statfs = util.promisify(fs.statfs);
     fs.promises.access = util.promisify(fs.access);
+    */
 
     // TODO: all promises methods that try to edit files in snapshot should throw
     // TODO implement missing methods
@@ -2011,7 +2027,7 @@ function payloadFileSync(pointer) {
     const opts = args[pos];
     if (!opts.env) opts.env = { ...process.env };
     // see https://github.com/vercel/pkg/issues/897#issuecomment-1049370335
-    if (opts.env.PKG_EXECPATH !== undefined) return;
+    if (opts.env.PKG_EXECPATH === 'PKG_INVOKE_NODEJS') return;
     opts.env.PKG_EXECPATH = EXECPATH;
   }
 
