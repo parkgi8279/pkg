@@ -100,6 +100,17 @@ if (process.send) {
 }
 
 [, ENTRYPOINT = DEFAULT_ENTRYPOINT] = process.argv;
+
+const dummyPointIndex = process.argv.findIndex(
+  (x) => x === 'PKG_DUMMY_ENTRYPOINT'
+);
+if (dummyPointIndex !== -1) {
+  // TODO: document/refactor this
+  process.argv.splice(dummyPointIndex, 1);
+  process.argv[dummyPointIndex] = path.resolve(process.argv[dummyPointIndex]);
+  ENTRYPOINT = process.argv[dummyPointIndex];
+}
+
 delete process.env.PKG_EXECPATH;
 
 // /////////////////////////////////////////////////////////////////
